@@ -1187,37 +1187,44 @@ const COACH_CACHE_KEY = 'vitals_coach_cache';
 
 function buildCoachPrompt() {
   const latest = state.bodyLog[0];
-  const weightHistory = state.bodyLog.slice(0, 14).map(e =>
-    `${e.date}: ${e.weight}kg${e.bmi ? ` (BMI ${e.bmi})` : ''}${e.waist ? `, waist ${e.waist}cm` : ''}${e.neck ? `, neck ${e.neck}cm` : ''}`
-  ).join('\n');
+
+  const weightHistory = state.bodyLog.slice(0, 14).map(function(e) {
+    return e.date + ': ' + e.weight + 'kg' +
+      (e.bmi ? ' (BMI ' + e.bmi + ')' : '') +
+      (e.waist ? ', waist ' + e.waist + 'cm' : '') +
+      (e.neck ? ', neck ' + e.neck + 'cm' : '');
+  }).join('\n');
 
   const weekDates = getWeekDates();
-  const calSummary = weekDates.map(d => {
+
+  const calSummary = weekDates.map(function(d) {
     const log = state.calLog[d] || [];
     if (!log.length) return null;
-    const cals = log.reduce((s,e)=>s+e.val,0);
-    const prot = log.reduce((s,e)=>s+e.protein,0);
-    const isFast = isFastDay(d);
-    return `${d} (${isFast?'FAST':'normal'}): ${cals} kcal, ${prot}g protein`;
+    const cals = log.reduce(function(s,e){return s+e.val;}, 0);
+    const prot = log.reduce(function(s,e){return s+e.protein;}, 0);
+    return d + ' (' + (isFastDay(d) ? 'FAST' : 'normal') + '): ' + cals + ' kcal, ' + prot + 'g protein';
   }).filter(Boolean).join('\n');
 
-  const alcSummary = weekDates.map(d => {
+  const alcSummary = weekDates.map(function(d) {
     const log = state.alcLog[d] || [];
     if (!log.length) return null;
-    const units = log.reduce((s,e)=>s+e.units,0);
-    return `${d}: ${units.toFixed(1)} units`;
+    const units = log.reduce(function(s,e){return s+e.units;}, 0);
+    return d + ': ' + units.toFixed(1) + ' units';
   }).filter(Boolean).join('\n');
 
-  const weekUnits = weekDates.reduce((s,d)=>s+(state.alcLog[d]||[]).reduce((ss,e)=>ss+e.units,0),0);
+  const weekUnits = weekDates.reduce(function(s,d) {
+    return s + (state.alcLog[d] || []).reduce(function(ss,e){return ss+e.units;}, 0);
+  }, 0);
 
-  const fastDayNames = state.fastDays.map(d=>['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d]).join(' & ');
+  const fastDayNames = state.fastDays.map(function(d) {
+    return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d];
+  }).join(' & ');
 
-  // Count fast day compliance this week
-  let fastDaysScheduled = 0, fastDaysKept = 0;
-  weekDates.forEach(d => {
+  var fastDaysScheduled = 0, fastDaysKept = 0;
+  weekDates.forEach(function(d) {
     if (isFastDay(d)) {
       fastDaysScheduled++;
-      const dayCals = (state.calLog[d]||[]).reduce((s,e)=>s+e.val,0);
+      const dayCals = (state.calLog[d]||[]).reduce(function(s,e){return s+e.val;}, 0);
       if (dayCals > 0 && dayCals <= 600) fastDaysKept++;
     }
   });
@@ -1226,54 +1233,59 @@ function buildCoachPrompt() {
     ? calcBodyFat(latest.gender||'male', latest.height||state.height, latest.waist, latest.neck, latest.hip)
     : null;
 
-  return `You are a direct, data-driven health coach. Analyse this person's health data and give specific, actionable recommendations. No fluff. Be precise with numbers. Prioritise the most impactful changes.
+  const bpSummary = (state.bpLog||[]).slice(0,10).map(function(r) {
+    return r.date + ' (' + r.time + '): ' + r.sys + '/' + r.dia + (r.pulse ? ' pulse ' + r.pulse : '');
+  }).join('\n');
 
-GOAL: Lose weight from 89kg to ${state.goalTarget}kg using 5:2 intermittent fasting.
-TODAY: ${today} (${isFastDay(today) ? 'FAST DAY' : 'normal day'})
-FAST DAYS: ${fastDayNames || 'not set up yet'}
+  var bpAvgStr = 'No BP readings logged yet.';
+  if (state.bpLog && state.bpLog.length >= 3) {
+    const n = Math.min(7, state.bpLog.length);
+    const avgSys = Math.round(state.bpLog.slice(0,n).reduce(function(s,r){return s+r.sys;},0) / n);
+    const avgDia = Math.round(state.bpLog.slice(0,n).reduce(function(s,r){return s+r.dia;},0) / n);
+    bpAvgStr = '7-day BP average: ' + avgSys + '/' + avgDia + ' mmHg';
+  }
 
-WEIGHT HISTORY (recent first):
-${weightHistory || 'No weight data logged yet.'}
+  const weightStr   = latest ? latest.weight + 'kg' : 'not logged';
+  const bmiStr      = latest && latest.bmi ? String(latest.bmi) : 'unknown';
+  const bfStr       = bf ? bf + '% (US Navy estimate)' : 'insufficient data';
+  const remStr      = latest ? Math.max(0, latest.weight - state.goalTarget).toFixed(1) + 'kg remaining' : 'unknown';
+  const compStr     = fastDaysScheduled > 0
+    ? 'Scheduled: ' + fastDaysScheduled + ', Kept (\u2264600 kcal): ' + fastDaysKept + ', Compliance: ' + Math.round((fastDaysKept/fastDaysScheduled)*100) + '%'
+    : 'No fast days scheduled this week';
 
-CURRENT STATS:
-- Weight: ${latest ? latest.weight + 'kg' : 'not logged'}
-- BMI: ${latest && latest.bmi ? latest.bmi : 'unknown'}
-- Body fat: ${bf ? bf + '% (US Navy estimate)' : 'insufficient data — needs waist+neck measurements'}
-- To goal: ${latest ? Math.max(0, latest.weight - state.goalTarget).toFixed(1) + 'kg remaining' : 'unknown'}
-
-CALORIES THIS WEEK:
-${calSummary || 'No calorie data this week.'}
-
-FASTING COMPLIANCE:
-- Scheduled fast days this week: ${fastDaysScheduled}
-- Fast days kept (≤600 kcal): ${fastDaysKept}
-${fastDaysScheduled > 0 ? `- Compliance: ${Math.round((fastDaysKept/fastDaysScheduled)*100)}%` : ''}
-
-ALCOHOL THIS WEEK:
-${alcSummary || 'No alcohol logged this week.'}
-- Weekly total: ${weekUnits.toFixed(1)} units (NHS guideline: 14 max)
-
-Respond ONLY with valid JSON (no markdown). Use this exact structure:
-{
-  "score": <integer 1-10 representing overall week performance>,
-  "verdict": "<2 sentence direct summary of where they stand this week>",
-  "recommendations": [
-    {
-      "area": "<one of: Weight, Fasting, Protein, Calories, Alcohol>",
-      "priority": "<high|med|low|good>",
-      "title": "<short headline, max 8 words>",
-      "body": "<2-3 sentences of specific, data-referenced analysis>",
-      "action": "<one concrete action to take today or tomorrow>"
-    }
-  ]
+  return 'You are a direct, data-driven health coach. Analyse this person\'s health data and give specific, actionable recommendations. No fluff. Be precise with numbers. Prioritise the most impactful changes.\n\n' +
+    'GOAL: Lose weight from 89kg to ' + state.goalTarget + 'kg using 5:2 intermittent fasting.\n' +
+    'TODAY: ' + today + ' (' + (isFastDay(today) ? 'FAST DAY' : 'normal day') + ')\n' +
+    'FAST DAYS: ' + (fastDayNames || 'not set up yet') + '\n\n' +
+    'WEIGHT HISTORY (recent first):\n' + (weightHistory || 'No weight data logged yet.') + '\n\n' +
+    'CURRENT STATS:\n' +
+    '- Weight: ' + weightStr + '\n' +
+    '- BMI: ' + bmiStr + '\n' +
+    '- Body fat: ' + bfStr + '\n' +
+    '- To goal: ' + remStr + '\n\n' +
+    'CALORIES THIS WEEK:\n' + (calSummary || 'No calorie data this week.') + '\n\n' +
+    'FASTING COMPLIANCE:\n' + compStr + '\n\n' +
+    'ALCOHOL THIS WEEK:\n' + (alcSummary || 'No alcohol logged this week.') + '\n' +
+    '- Weekly total: ' + weekUnits.toFixed(1) + ' units (NHS guideline: 14 max)\n\n' +
+    'BLOOD PRESSURE (last 10 readings):\n' + (bpSummary || 'No BP readings logged yet.') + '\n' +
+    bpAvgStr + '\n\n' +
+    'Respond ONLY with valid JSON (no markdown). Use this exact structure:\n' +
+    '{\n' +
+    '  "score": <integer 1-10 representing overall week performance>,\n' +
+    '  "verdict": "<2 sentence direct summary of where they stand this week>",\n' +
+    '  "recommendations": [\n' +
+    '    {\n' +
+    '      "area": "<one of: Weight, Fasting, Protein, Calories, Alcohol, Blood Pressure>",\n' +
+    '      "priority": "<high|med|low|good>",\n' +
+    '      "title": "<short headline, max 8 words>",\n' +
+    '      "body": "<2-3 sentences of specific, data-referenced analysis>",\n' +
+    '      "action": "<one concrete action to take today or tomorrow>"\n' +
+    '    }\n' +
+    '  ]\n' +
+    '}\n\n' +
+    'Include 4-6 recommendations. Order by priority (high first). Use priority=good when an area is going well. Reference actual numbers from the data. Be direct - no motivational filler.';
 }
 
-BLOOD PRESSURE (last 10 readings):
-\${bpSummary || 'No BP readings logged yet.'}
-\${bpAvg7 ? `7-day BP average: \${bpAvg7.sys}/\${bpAvg7.dia} mmHg` : ''}
-
-Include 4-6 recommendations covering weight, fasting, protein, calories, alcohol, and blood pressure where data exists. Order by priority (high first). Use priority=good when an area is going well. Reference actual numbers from the data. Be direct — no motivational filler.`;
-}
 
 async function runCoach(force = false) {
   const out = document.getElementById('coachOutput');
