@@ -180,6 +180,43 @@
   .coach-loading p { margin-top: 12px; font-size: 13px; line-height: 1.6; }
   .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 12px; padding: 6px 14px; border-radius: 8px; }
   .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── BLOOD PRESSURE ── */
+  .bp-display { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 14px 0; }
+  .bp-number { font-family: 'DM Serif Display', serif; font-size: 52px; line-height: 1; }
+  .bp-sep { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--muted); }
+  .bp-label { font-size: 11px; color: var(--muted); text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+  .bp-category-band { border-radius: 10px; padding: 10px 14px; text-align: center; margin-bottom: 14px; }
+  .bp-category-band .bpc-label { font-size: 13px; font-weight: 600; }
+  .bp-category-band .bpc-range { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+  .bp-cat-optimal  { background: rgba(56,189,248,0.12);  border: 1px solid rgba(56,189,248,0.3);  color: var(--accent2); }
+  .bp-cat-normal   { background: rgba(74,222,128,0.12);  border: 1px solid rgba(74,222,128,0.3);  color: var(--accent); }
+  .bp-cat-highNorm { background: rgba(251,146,60,0.12);  border: 1px solid rgba(251,146,60,0.3);  color: var(--warn); }
+  .bp-cat-grade1   { background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.3); color: var(--danger); }
+  .bp-cat-grade2   { background: rgba(248,113,113,0.18); border: 1px solid rgba(248,113,113,0.5); color: var(--danger); }
+  .bp-cat-grade3   { background: rgba(248,113,113,0.25); border: 1px solid rgba(248,113,113,0.7); color: var(--danger); }
+  .bp-chart { display: flex; align-items: flex-end; gap: 3px; height: 70px; margin-top: 8px; }
+  .bp-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .bp-bar-sys { border-radius: 3px 3px 0 0; width: 100%; min-height: 3px; background: var(--danger); opacity: 0.7; }
+  .bp-bar-dia { border-radius: 3px 3px 0 0; width: 100%; min-height: 3px; background: var(--accent2); opacity: 0.7; }
+  .bp-ref-line { position: relative; }
+  .bp-log-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .bp-log-item:last-child { border-bottom: none; }
+  .bp-log-val { font-family: 'DM Serif Display', serif; font-size: 20px; }
+  .bp-avg-row { display: flex; gap: 12px; margin-top: 12px; }
+  .bp-avg-item { flex: 1; background: var(--surface2); border-radius: 10px; padding: 10px; text-align: center; }
+  .bp-avg-val { font-family: 'DM Serif Display', serif; font-size: 22px; }
+  .bp-avg-label { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .time-chip { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 500; margin-left: 6px; }
+  .time-chip.morning { background: rgba(251,146,60,0.15); color: var(--warn); }
+  .time-chip.evening { background: rgba(56,189,248,0.15); color: var(--accent2); }
+  /* ── SETTINGS ── */
+  .settings-section { margin-bottom: 20px; }
+  .settings-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); font-weight: 600; margin-bottom: 10px; }
+  .data-stat { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .data-stat:last-child { border-bottom: none; }
+  .data-stat-val { color: var(--accent); font-weight: 600; }
+  .danger-zone { border: 1px solid rgba(248,113,113,0.3); border-radius: var(--radius); padding: 16px; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -201,6 +238,8 @@
   <div class="tab" onclick="showTab('alcohol')">Alcohol</div>
   <div class="tab" onclick="showTab('insights')">Insights</div>
   <div class="tab" onclick="showTab('coach')">AI Coach</div>
+  <div class="tab" onclick="showTab('bp')">Blood Pressure</div>
+  <div class="tab" onclick="showTab('settings')">Settings</div>
 </div>
 
 <!-- DASHBOARD -->
@@ -239,6 +278,10 @@
       <div class="stat-value" id="dash-fastmode" style="font-size:18px;padding-top:4px">—</div>
       <div class="stat-unit" id="dash-fastcal">Set up 5:2</div>
     </div>
+  </div>
+  <div class="card" id="dashBpCard" style="display:none;cursor:pointer" onclick="showTab('bp')">
+    <div class="card-title">Blood Pressure <span style="float:right;font-size:10px;color:var(--muted)">tap for full log →</span></div>
+    <div id="dashBpContent"></div>
   </div>
   <div class="card">
     <div class="card-title">BMI Scale</div>
@@ -463,6 +506,143 @@
   <div id="insightsPanel"></div>
 </div>
 
+
+<!-- BLOOD PRESSURE -->
+<div class="panel" id="panel-bp">
+  <div style="height:16px"></div>
+  <div class="section-head">Blood Pressure</div>
+
+  <div class="card" id="bpLatestCard">
+    <div class="card-title">Latest Reading</div>
+    <div id="bpLatestDisplay">
+      <div class="empty-state"><div class="es-icon">💓</div>No readings yet — log your first below</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Log Reading</div>
+    <div class="bp-display">
+      <div style="text-align:center">
+        <input type="number" id="inp-bp-sys" placeholder="120" min="60" max="260"
+          style="width:90px;font-family:'DM Serif Display',serif;font-size:36px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text);outline:none">
+        <div class="bp-label">Systolic</div>
+      </div>
+      <div class="bp-sep">/</div>
+      <div style="text-align:center">
+        <input type="number" id="inp-bp-dia" placeholder="80" min="40" max="160"
+          style="width:90px;font-family:'DM Serif Display',serif;font-size:36px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text);outline:none">
+        <div class="bp-label">Diastolic</div>
+      </div>
+      <div style="text-align:center">
+        <input type="number" id="inp-bp-pulse" placeholder="72" min="30" max="220"
+          style="width:70px;font-family:'DM Serif Display',serif;font-size:28px;text-align:center;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px;color:var(--text);outline:none">
+        <div class="bp-label">Pulse</div>
+      </div>
+    </div>
+    <div class="input-row">
+      <div class="input-group">
+        <label>Time of day</label>
+        <select id="inp-bp-time">
+          <option value="morning">Morning (before coffee/meds)</option>
+          <option value="evening">Evening</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Notes (optional)</label>
+        <input type="text" id="inp-bp-notes" placeholder="e.g. after exercise">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="logBP()">Save Reading</button>
+  </div>
+
+  <div class="card" id="bpAvgCard" style="display:none">
+    <div class="card-title">7-Day &amp; 30-Day Averages</div>
+    <div class="bp-avg-row" id="bpAvgRow"></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">💡 Single readings vary significantly. Averages are the clinically meaningful metric.</div>
+  </div>
+
+  <div class="card" id="bpChartCard" style="display:none">
+    <div class="card-title">Trend — Last 14 Readings</div>
+    <div style="display:flex;gap:12px;margin-bottom:6px;font-size:11px">
+      <span><span style="color:var(--danger)">■</span> Systolic</span>
+      <span><span style="color:var(--accent2)">■</span> Diastolic</span>
+    </div>
+    <div class="bp-chart" id="bpChart"></div>
+    <div class="chart-labels" id="bpChartLabels"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">WHO Categories</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr style="color:var(--muted)"><td style="padding:5px 8px">Category</td><td style="padding:5px 8px;text-align:right">Systolic</td><td style="padding:5px 8px;text-align:right">Diastolic</td></tr>
+      <tr style="border-top:1px solid var(--border)"><td style="padding:6px 8px;color:var(--accent2)">Optimal</td><td style="padding:6px 8px;text-align:right">&lt;120</td><td style="padding:6px 8px;text-align:right">&lt;80</td></tr>
+      <tr style="border-top:1px solid var(--border)"><td style="padding:6px 8px;color:var(--accent)">Normal</td><td style="padding:6px 8px;text-align:right">120–129</td><td style="padding:6px 8px;text-align:right">80–84</td></tr>
+      <tr style="border-top:1px solid var(--border)"><td style="padding:6px 8px;color:var(--warn)">High Normal</td><td style="padding:6px 8px;text-align:right">130–139</td><td style="padding:6px 8px;text-align:right">85–89</td></tr>
+      <tr style="border-top:1px solid var(--border)"><td style="padding:6px 8px;color:var(--danger)">Grade 1 Hypertension</td><td style="padding:6px 8px;text-align:right">140–159</td><td style="padding:6px 8px;text-align:right">90–99</td></tr>
+      <tr style="border-top:1px solid var(--border)"><td style="padding:6px 8px;color:var(--danger)">Grade 2 Hypertension</td><td style="padding:6px 8px;text-align:right">160–179</td><td style="padding:6px 8px;text-align:right">100–109</td></tr>
+      <tr style="border-top:1px solid var(--border)"><td style="padding:6px 8px;color:var(--danger)">Grade 3 Hypertension</td><td style="padding:6px 8px;text-align:right">≥180</td><td style="padding:6px 8px;text-align:right">≥110</td></tr>
+    </table>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">⚠️ This app is not a medical device. If readings are consistently elevated, consult your GP.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Recent Log</div>
+    <div id="bpLog"><div class="empty-state"><div class="es-icon">💓</div>No readings yet</div></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="panel" id="panel-settings">
+  <div style="height:16px"></div>
+  <div class="section-head">Settings &amp; Data</div>
+
+  <div class="card">
+    <div class="settings-section-title">Your Data</div>
+    <div id="dataStats"></div>
+  </div>
+
+  <div class="card">
+    <div class="settings-section-title">Backup &amp; Restore</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+      Export saves everything — weight, BP, calories, fasting, alcohol — as a JSON file. Import restores it. Safe to use after any app update.
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <button class="btn btn-primary" style="flex:1" onclick="exportData()">⬇ Export backup</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('importFile').click()">⬆ Import backup</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    <div id="importStatus" style="font-size:12px;color:var(--accent);display:none;margin-top:6px"></div>
+  </div>
+
+  <div class="card">
+    <div class="settings-section-title">Goals</div>
+    <div class="input-row">
+      <div class="input-group"><label>Start weight (kg)</label><input type="number" id="inp-goal-start" step="0.1"></div>
+      <div class="input-group"><label>Target weight (kg)</label><input type="number" id="inp-goal-target" step="0.1"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveGoals()">Update Goals</button>
+  </div>
+
+  <div class="card">
+    <div class="settings-section-title">Worker URL</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Your Cloudflare Worker endpoint for AI features.</div>
+    <div class="input-group" style="margin-bottom:10px">
+      <label>Worker URL</label>
+      <input type="text" id="inp-worker-url" placeholder="https://vitals-ai.xxx.workers.dev">
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveWorkerUrl()">Save URL</button>
+  </div>
+
+  <div class="card">
+    <div class="settings-section-title" style="color:var(--danger)">Danger Zone</div>
+    <div class="danger-zone">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Permanently delete all logged data. This cannot be undone.</div>
+      <button class="btn btn-sm" style="background:var(--danger);color:white" onclick="clearAllData()">Delete all data</button>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 
 <!-- AI COACH -->
@@ -517,6 +697,8 @@ if (!state.gender)     state.gender = 'male';
 if (!state.fastDays)   state.fastDays = [];
 if (!state.goalStart)  state.goalStart = 89;
 if (!state.goalTarget) state.goalTarget = 82;
+if (!state.bpLog)     state.bpLog = [];
+if (!state.workerUrl) state.workerUrl = 'https://vitals-ai.dave-carr.workers.dev';
 function save() { localStorage.setItem('vitals_v2', JSON.stringify(state)); }
 
 // Date header
@@ -524,8 +706,8 @@ const _n = new Date();
 document.getElementById('dateDisplay').innerHTML = `${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][_n.getDay()]}<br><strong>${_n.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_n.getMonth()]} ${_n.getFullYear()}</strong>`;
 
 // ── TABS ───────────────────────────────────────────────────────────────
-const TAB_ORDER = ['dashboard','body','fasting','calories','meals','alcohol','insights','coach'];
-const NAV_MAP   = {dashboard:0,body:1,fasting:2,meals:3,insights:4,coach:5};
+const TAB_ORDER = ['dashboard','body','fasting','calories','meals','alcohol','insights','coach','bp','settings'];
+const NAV_MAP   = {dashboard:0,body:1,fasting:2,meals:3,insights:4,coach:5}; // bp+settings have no nav icon
 function showTab(name) {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -536,7 +718,10 @@ function showTab(name) {
   if (name==='dashboard') renderDashboard();
   if (name==='insights')  renderInsights();
   if (name==='fasting')   renderFasting();
+renderBP();
   if (name==='coach')     maybeRunCoach();
+  if (name==='bp')        renderBP();
+  if (name==='settings')  renderSettings();
 }
 
 // ── BMI ────────────────────────────────────────────────────────────────
@@ -664,7 +849,8 @@ function toggleFastDay(dow){
 }
 function saveFastDays(){
   if(state.fastDays.length!==2){alert('Please select exactly 2 fast days.');return;}
-  save(); renderFasting(); renderDashboard();
+  save(); renderFasting();
+renderBP(); renderDashboard();
   alert('✅ Fast days saved: '+state.fastDays.map(d=>DAY_FULL[d]).join(' & '));
 }
 function renderFasting(){
@@ -756,8 +942,8 @@ Return ONLY a valid JSON array of exactly 3 meal objects. No markdown, no explan
   const el=document.getElementById('mealResults');
   el.innerHTML='<div class="ai-loading"><div class="spinner"></div><div>Generating personalised meals…</div></div>';
   try {
-    const WORKER_URL = 'https://vitals-ai.dave-carr.workers.dev';
-    const resp=await fetch(WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    const WORKER_URL = () => state.workerUrl || 'https://vitals-ai.dave-carr.workers.dev';
+    const resp=await fetch(WORKER_URL(),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
     if (!resp.ok) throw new Error(`Worker error ${resp.status}`);
     const data=await resp.json();
     const raw=(data.result||'').replace(/```json|```/g,'').trim();
@@ -866,6 +1052,27 @@ function renderDashboard(){
     return `<div class="bar${i===6?' today':''}" style="height:${h}px" title="${v}kg"></div>`;
   }).join('');
   document.getElementById('weightChartLabels').innerHTML=labels.map(l=>`<div class="chart-label">${l}</div>`).join('');
+  // BP dashboard tile
+  if (state.bpLog && state.bpLog.length) {
+    const r = state.bpLog[0];
+    const cat = bpCategory(r.sys, r.dia);
+    const clrMap = {'bp-cat-optimal':'var(--accent2)','bp-cat-normal':'var(--accent)','bp-cat-highNorm':'var(--warn)','bp-cat-grade1':'var(--danger)','bp-cat-grade2':'var(--danger)','bp-cat-grade3':'var(--danger)'};
+    const clr = clrMap[cat.cls] || 'var(--text)';
+    document.getElementById('dashBpCard').style.display='block';
+    document.getElementById('dashBpContent').innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <span style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--danger)">${r.sys}</span>
+          <span style="font-size:20px;color:var(--muted)"> / </span>
+          <span style="font-family:'DM Serif Display',serif;font-size:32px;color:var(--accent2)">${r.dia}</span>
+          <span style="font-size:13px;color:var(--muted);margin-left:6px">mmHg</span>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:13px;font-weight:600;color:${clr}">${cat.label}</div>
+          <div style="font-size:11px;color:var(--muted)">${r.date}</div>
+        </div>
+      </div>`;
+  }
   // Fast tile
   if(state.fastDays.length){
     const tf=isFastDay(today);
@@ -933,7 +1140,7 @@ function renderInsights(){
 // ══════════════════════════════════════════════════════════
 // AI COACH
 // ══════════════════════════════════════════════════════════
-const WORKER_URL = 'https://vitals-ai.dave-carr.workers.dev';
+const WORKER_URL = () => state.workerUrl || 'https://vitals-ai.dave-carr.workers.dev';
 const COACH_CACHE_KEY = 'vitals_coach_cache';
 
 function buildCoachPrompt() {
@@ -1019,7 +1226,11 @@ Respond ONLY with valid JSON (no markdown). Use this exact structure:
   ]
 }
 
-Include 4-6 recommendations. Order by priority (high first). Use priority=good when an area is going well. Reference actual numbers from the data. Be direct — no motivational filler.`;
+BLOOD PRESSURE (last 10 readings):
+\${bpSummary || 'No BP readings logged yet.'}
+\${bpAvg7 ? `7-day BP average: \${bpAvg7.sys}/\${bpAvg7.dia} mmHg` : ''}
+
+Include 4-6 recommendations covering weight, fasting, protein, calories, alcohol, and blood pressure where data exists. Order by priority (high first). Use priority=good when an area is going well. Reference actual numbers from the data. Be direct — no motivational filler.`;
 }
 
 async function runCoach(force = false) {
@@ -1060,7 +1271,7 @@ async function runCoach(force = false) {
   const prompt = buildCoachPrompt();
 
   try {
-    const resp = await fetch(WORKER_URL, {
+    const resp = await fetch(WORKER_URL(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt })
@@ -1097,7 +1308,7 @@ function renderCoach(data) {
     `<div class="score-seg${i < score ? ' ' + segClass : ''}"></div>`
   ).join('');
 
-  const areaIcons = {Weight:'⚖️', Fasting:'🌙', Protein:'💪', Calories:'🍽️', Alcohol:'🍺'};
+  const areaIcons = {Weight:'⚖️', Fasting:'🌙', Protein:'💪', Calories:'🍽️', Alcohol:'🍺', 'Blood Pressure':'💓', BP:'💓'};
   const priorityLabel = {high:'⚠️ Action needed', med:'↗ Improve', low:'✓ Fine-tune', good:'✅ On track'};
 
   const recs = (data.recommendations || []).map(r => `
@@ -1131,6 +1342,221 @@ function renderCoach(data) {
   `;
 }
 
+
+// ══════════════════════════════════════════════════════════
+// BLOOD PRESSURE
+// ══════════════════════════════════════════════════════════
+function bpCategory(sys, dia) {
+  // WHO 2023 classification — systolic takes precedence if higher category
+  const cats = [
+    { key:'optimal',  label:'Optimal',               cls:'bp-cat-optimal',  sys:[0,120],   dia:[0,80]  },
+    { key:'normal',   label:'Normal',                 cls:'bp-cat-normal',   sys:[120,130], dia:[80,85] },
+    { key:'highNorm', label:'High Normal',            cls:'bp-cat-highNorm', sys:[130,140], dia:[85,90] },
+    { key:'grade1',   label:'Grade 1 Hypertension',  cls:'bp-cat-grade1',   sys:[140,160], dia:[90,100]},
+    { key:'grade2',   label:'Grade 2 Hypertension',  cls:'bp-cat-grade2',   sys:[160,180], dia:[100,110]},
+    { key:'grade3',   label:'Grade 3 Hypertension',  cls:'bp-cat-grade3',   sys:[180,999], dia:[110,999]},
+  ];
+  let catIdx = 0;
+  cats.forEach((c,i) => {
+    if (sys >= c.sys[0] || dia >= c.dia[0]) catIdx = i;
+  });
+  return cats[catIdx];
+}
+
+function logBP() {
+  const sys   = parseInt(document.getElementById('inp-bp-sys').value);
+  const dia   = parseInt(document.getElementById('inp-bp-dia').value);
+  const pulse = parseInt(document.getElementById('inp-bp-pulse').value) || null;
+  const time  = document.getElementById('inp-bp-time').value;
+  const notes = document.getElementById('inp-bp-notes').value.trim();
+  if (!sys || !dia || sys < 60 || dia < 40) { alert('Please enter valid systolic and diastolic values.'); return; }
+  state.bpLog.unshift({
+    date: today,
+    datetime: new Date().toISOString(),
+    time,
+    sys, dia, pulse, notes
+  });
+  save();
+  document.getElementById('inp-bp-sys').value = '';
+  document.getElementById('inp-bp-dia').value = '';
+  document.getElementById('inp-bp-pulse').value = '';
+  document.getElementById('inp-bp-notes').value = '';
+  renderBP();
+  // Also refresh dashboard BP tile
+  renderDashboard();
+}
+
+function renderBP() {
+  const log = state.bpLog;
+
+  // Latest reading card
+  const latestEl = document.getElementById('bpLatestDisplay');
+  if (!log.length) {
+    latestEl.innerHTML = '<div class="empty-state"><div class="es-icon">💓</div>No readings yet — log your first below</div>';
+    document.getElementById('bpAvgCard').style.display = 'none';
+    document.getElementById('bpChartCard').style.display = 'none';
+  } else {
+    const r = log[0];
+    const cat = bpCategory(r.sys, r.dia);
+    latestEl.innerHTML = `
+      <div class="bp-display" style="margin:6px 0">
+        <div style="text-align:center">
+          <div class="bp-number" style="color:var(--danger)">${r.sys}</div>
+          <div class="bp-label">Systolic</div>
+        </div>
+        <div class="bp-sep">/</div>
+        <div style="text-align:center">
+          <div class="bp-number" style="color:var(--accent2)">${r.dia}</div>
+          <div class="bp-label">Diastolic</div>
+        </div>
+        ${r.pulse ? `<div style="text-align:center"><div class="bp-number" style="font-size:36px;color:var(--muted)">${r.pulse}</div><div class="bp-label">Pulse</div></div>` : ''}
+      </div>
+      <div class="bp-category-band ${cat.cls}">
+        <div class="bpc-label">${cat.label}</div>
+        <div class="bpc-range">${r.sys}/${r.dia} mmHg · ${r.date} ${r.time === 'morning' ? '🌅 Morning' : r.time === 'evening' ? '🌙 Evening' : ''}</div>
+      </div>`;
+
+    // Averages
+    document.getElementById('bpAvgCard').style.display = 'block';
+    const last7  = log.slice(0, Math.min(7, log.length));
+    const last30 = log.slice(0, Math.min(30, log.length));
+    const avg = arr => ({ sys: Math.round(arr.reduce((s,r)=>s+r.sys,0)/arr.length), dia: Math.round(arr.reduce((s,r)=>s+r.dia,0)/arr.length) });
+    const a7 = avg(last7), a30 = avg(last30);
+    const cat7 = bpCategory(a7.sys, a7.dia), cat30 = bpCategory(a30.sys, a30.dia);
+    document.getElementById('bpAvgRow').innerHTML = `
+      <div class="bp-avg-item">
+        <div class="bp-avg-val" style="color:var(--danger)">${a7.sys}<span style="color:var(--muted);font-size:16px">/${a7.dia}</span></div>
+        <div class="bp-avg-label">7-day avg</div>
+        <div style="font-size:10px;margin-top:3px;color:${cat7.cls.includes('optimal')?'var(--accent2)':cat7.cls.includes('normal')&&!cat7.cls.includes('high')?'var(--accent)':cat7.cls.includes('highNorm')?'var(--warn)':'var(--danger)'}">${cat7.label}</div>
+      </div>
+      <div class="bp-avg-item">
+        <div class="bp-avg-val" style="color:var(--danger)">${a30.sys}<span style="color:var(--muted);font-size:16px">/${a30.dia}</span></div>
+        <div class="bp-avg-label">30-day avg</div>
+        <div style="font-size:10px;margin-top:3px;color:${cat30.cls.includes('optimal')?'var(--accent2)':cat30.cls.includes('normal')&&!cat30.cls.includes('high')?'var(--accent)':cat30.cls.includes('highNorm')?'var(--warn)':'var(--danger)'}">${cat30.label}</div>
+      </div>`;
+
+    // Chart (last 14)
+    const chartData = log.slice(0, 14).reverse();
+    document.getElementById('bpChartCard').style.display = 'block';
+    const maxSys = Math.max(...chartData.map(r=>r.sys), 160);
+    const minDia = Math.min(...chartData.map(r=>r.dia), 60);
+    const range  = maxSys - minDia + 10;
+    document.getElementById('bpChart').innerHTML = chartData.map(r => {
+      const sysH = Math.max(4, ((r.sys - minDia) / range) * 62);
+      const diaH = Math.max(4, ((r.dia - minDia) / range) * 62);
+      return `<div class="bp-bar-wrap">
+        <div class="bp-bar-sys" style="height:${sysH}px" title="${r.sys}/${r.dia}"></div>
+        <div class="bp-bar-dia" style="height:${diaH}px" title="${r.dia}"></div>
+      </div>`;
+    }).join('');
+    document.getElementById('bpChartLabels').innerHTML = chartData.map(r =>
+      `<div class="chart-label">${r.date.slice(5)}</div>`).join('');
+  }
+
+  // Log list
+  const logEl = document.getElementById('bpLog');
+  if (!log.length) {
+    logEl.innerHTML = '<div class="empty-state"><div class="es-icon">💓</div>No readings yet</div>';
+    return;
+  }
+  logEl.innerHTML = log.slice(0, 20).map(r => {
+    const cat = bpCategory(r.sys, r.dia);
+    const timeChip = r.time === 'morning' ? '<span class="time-chip morning">Morning</span>' : r.time === 'evening' ? '<span class="time-chip evening">Evening</span>' : '';
+    return `<div class="bp-log-item">
+      <div>
+        <div class="log-desc">${r.sys}/${r.dia} mmHg${r.pulse ? ` · ${r.pulse} bpm` : ''}${timeChip}</div>
+        <div class="log-time">${r.date}${r.notes ? ' · ' + r.notes : ''}</div>
+      </div>
+      <div class="bp-log-val" style="color:${cat.cls.includes('optimal')?'var(--accent2)':cat.cls.includes('highNorm')||cat.cls.includes('grade')?'var(--danger)':'var(--accent)'}">${cat.label.replace(' Hypertension','').replace('Grade ','G')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// SETTINGS — export / import / goals / worker url
+// ══════════════════════════════════════════════════════════
+function renderSettings() {
+  // Data stats
+  const bpCount = state.bpLog.length;
+  const weightCount = state.bodyLog.length;
+  const calDays = Object.keys(state.calLog).length;
+  const alcDays = Object.keys(state.alcLog).length;
+  const sizeKB  = (JSON.stringify(state).length / 1024).toFixed(1);
+  document.getElementById('dataStats').innerHTML = `
+    <div class="data-stat"><span>Weight entries</span><span class="data-stat-val">${weightCount}</span></div>
+    <div class="data-stat"><span>BP readings</span><span class="data-stat-val">${bpCount}</span></div>
+    <div class="data-stat"><span>Days with calories logged</span><span class="data-stat-val">${calDays}</span></div>
+    <div class="data-stat"><span>Days with alcohol logged</span><span class="data-stat-val">${alcDays}</span></div>
+    <div class="data-stat"><span>Storage used</span><span class="data-stat-val">${sizeKB} KB</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">Data is stored in your browser's localStorage under the key <code style="background:var(--surface2);padding:1px 5px;border-radius:4px">vitals_v2</code>. It persists across app updates as long as the domain stays the same.</div>`;
+
+  // Prefill goal inputs
+  document.getElementById('inp-goal-start').value  = state.goalStart;
+  document.getElementById('inp-goal-target').value = state.goalTarget;
+  document.getElementById('inp-worker-url').value  = state.workerUrl || '';
+}
+
+function exportData() {
+  const payload = { exported: new Date().toISOString(), version: 'vitals_v2', data: state };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `vitals-backup-${today}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const payload = JSON.parse(e.target.result);
+      const imported = payload.data || payload; // support both wrapped and raw
+      // Validate it looks like our data
+      if (!imported.bodyLog && !imported.bpLog && !imported.calLog) {
+        throw new Error('File does not appear to be a Vitals backup.');
+      }
+      // Merge — keep all fields, imported data wins
+      Object.assign(state, imported);
+      save();
+      const statusEl = document.getElementById('importStatus');
+      statusEl.style.display = 'block';
+      statusEl.textContent = `✅ Imported successfully — ${imported.bodyLog?.length||0} weight entries, ${imported.bpLog?.length||0} BP readings.`;
+      renderSettings();
+      renderDashboard();
+    } catch(err) {
+      alert('Import failed: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset so same file can be re-imported
+}
+
+function saveGoals() {
+  const s = parseFloat(document.getElementById('inp-goal-start').value);
+  const t = parseFloat(document.getElementById('inp-goal-target').value);
+  if (s && t && t < s) { state.goalStart = s; state.goalTarget = t; save(); renderDashboard(); alert('✅ Goals updated.'); }
+  else alert('Please enter a valid start and target weight (target must be less than start).');
+}
+
+function saveWorkerUrl() {
+  const url = document.getElementById('inp-worker-url').value.trim();
+  if (url) { state.workerUrl = url; save(); alert('✅ Worker URL saved.'); }
+}
+
+function clearAllData() {
+  if (confirm('Delete ALL data permanently? This cannot be undone.')) {
+    if (confirm('Are you sure? All weight, BP, calorie, and alcohol history will be lost.')) {
+      localStorage.removeItem('vitals_v2');
+      localStorage.removeItem('vitals_coach_cache');
+      location.reload();
+    }
+  }
+}
+
 // ── INIT ───────────────────────────────────────────────────────────────
 renderDashboard();
 renderBodyHistory();
@@ -1138,6 +1564,7 @@ renderBodyFat(state.bodyLog[0]);
 renderCalLog();
 renderAlcLog();
 renderFasting();
+renderBP();
 </script>
 </body>
 </html>
