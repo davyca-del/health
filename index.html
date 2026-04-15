@@ -410,15 +410,56 @@
   </div>
   <div class="card">
     <div class="card-title">Log Food</div>
+    <div class="input-row" style="align-items:flex-end;gap:8px">
+      <div class="input-group" style="flex:1">
+        <label>Description</label>
+        <input type="text" id="inp-cal-desc" placeholder="e.g. Baked potato with bolognese"
+          onkeydown="if(event.key==='Enter'){estimateCals();}" >
+      </div>
+      <button class="btn btn-secondary btn-sm" style="flex-shrink:0;white-space:nowrap;padding:12px 14px" onclick="estimateCals()" title="Ask AI to estimate calories">✦ Estimate</button>
+    </div>
+    <!-- AI estimate result -->
+    <div id="calEstimateResult" style="display:none;background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(56,189,248,0.06));border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="ai-badge" style="margin:0">✦ AI Estimate</div>
+        <div style="font-size:11px;color:var(--muted)" id="calEstPortion"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:10px">
+        <div style="flex:1;background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--warn)" id="calEstKcal">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">kcal</div>
+        </div>
+        <div style="flex:1;background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent)" id="calEstProtein">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">g protein</div>
+        </div>
+        <div style="flex:1;background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent2)" id="calEstCarbs">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">g carbs</div>
+        </div>
+        <div style="flex:1;background:var(--surface);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--warn)" id="calEstFat">—</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">g fat</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5" id="calEstNote"></div>
+      <button class="btn btn-primary btn-sm" style="width:100%" onclick="useEstimate()">Use these values</button>
+    </div>
+    <div id="calEstLoading" style="display:none;text-align:center;padding:16px;color:var(--muted)">
+      <div class="spinner" style="width:24px;height:24px;border-width:3px;margin:0 auto 8px"></div>
+      <div style="font-size:13px">Estimating…</div>
+    </div>
     <div class="input-row">
-      <div class="input-group" style="flex:2"><label>Description</label><input type="text" id="inp-cal-desc" placeholder="e.g. Grilled chicken breast"></div>
       <div class="input-group"><label>kcal</label><input type="number" id="inp-cal-val" placeholder="350" min="0"></div>
+      <div class="input-group"><label>Protein (g)</label><input type="number" id="inp-protein" placeholder="25" min="0"></div>
     </div>
     <div class="input-row">
       <div class="input-group"><label>Meal</label>
         <select id="inp-cal-meal"><option>Breakfast</option><option>Lunch</option><option selected>Dinner</option><option>Snack</option><option>Drink</option></select>
       </div>
-      <div class="input-group"><label>Protein (g)</label><input type="number" id="inp-protein" placeholder="25" min="0"></div>
+      <div class="input-group"><label>Portion notes (optional)</label>
+        <input type="text" id="inp-cal-portion" placeholder="e.g. large, 2 scoops">
+      </div>
     </div>
     <button class="btn btn-primary" style="width:100%" onclick="logCalories()">Add Entry</button>
   </div>
@@ -481,18 +522,43 @@
   <div class="card">
     <div class="card-title">Quick Add</div>
     <div class="unit-grid">
-      <div class="unit-btn" onclick="quickAddUnits(2.3,'Pint of beer (4%)')"><span class="ub-icon">🍺</span>Pint (4%)<div class="ub-units">2.3 units</div></div>
-      <div class="unit-btn" onclick="quickAddUnits(3,'Large wine 250ml')"><span class="ub-icon">🍷</span>Wine 250ml<div class="ub-units">3.0 units</div></div>
-      <div class="unit-btn" onclick="quickAddUnits(1,'Single spirit')"><span class="ub-icon">🥃</span>Single spirit<div class="ub-units">1.0 unit</div></div>
-      <div class="unit-btn" onclick="quickAddUnits(2,'Double spirit')"><span class="ub-icon">🥃</span>Double spirit<div class="ub-units">2.0 units</div></div>
-      <div class="unit-btn" onclick="quickAddUnits(1.4,'Bottle of lager')"><span class="ub-icon">🍻</span>Bottle lager<div class="ub-units">1.4 units</div></div>
-      <div class="unit-btn" onclick="quickAddUnits(1.5,'Gin & Tonic')"><span class="ub-icon">🍸</span>G&T (50ml)<div class="ub-units">1.5 units</div></div>
+      <div class="unit-btn" onclick="quickAddUnits(2.3,'Pint of beer (4%)')"><span class="ub-icon">🍺</span>Pint (4%)<div class="ub-units">2.3u · ~129 kcal</div></div>
+      <div class="unit-btn" onclick="quickAddUnits(3,'Large wine 250ml')"><span class="ub-icon">🍷</span>Wine 250ml<div class="ub-units">3.0u · ~168 kcal</div></div>
+      <div class="unit-btn" onclick="quickAddUnits(1,'Single spirit')"><span class="ub-icon">🥃</span>Single spirit<div class="ub-units">1.0u · ~56 kcal</div></div>
+      <div class="unit-btn" onclick="quickAddUnits(2,'Double spirit')"><span class="ub-icon">🥃</span>Double spirit<div class="ub-units">2.0u · ~112 kcal</div></div>
+      <div class="unit-btn" onclick="quickAddUnits(1.4,'Bottle of lager')"><span class="ub-icon">🍻</span>Bottle lager<div class="ub-units">1.4u · ~78 kcal</div></div>
+      <div class="unit-btn" onclick="quickAddUnits(1.5,'Gin & Tonic')"><span class="ub-icon">🍸</span>G&T (50ml)<div class="ub-units">1.5u · ~84 kcal</div></div>
     </div>
-    <div class="input-row" style="margin-top:8px">
-      <div class="input-group" style="flex:2"><label>Custom drink</label><input type="text" id="inp-alc-desc" placeholder="e.g. Craft IPA"></div>
-      <div class="input-group"><label>Units</label><input type="number" id="inp-alc-units" placeholder="1.5" step="0.1" min="0"></div>
+    <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:16px">
+      <div class="card-title" style="margin-bottom:10px">Custom Drink Calculator</div>
+      <div class="input-row">
+        <div class="input-group" style="flex:2">
+          <label>Drink name</label>
+          <input type="text" id="inp-alc-desc" placeholder="e.g. Wine, IPA, Cider">
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Volume (ml)</label>
+          <input type="number" id="inp-alc-ml" placeholder="250" min="1" max="2000" oninput="calcAlcUnits()">
+        </div>
+        <div class="input-group">
+          <label>ABV (%)</label>
+          <input type="number" id="inp-alc-abv" placeholder="11" min="0.1" max="70" step="0.1" oninput="calcAlcUnits()">
+        </div>
+      </div>
+      <div id="alcCalcResult" style="display:none;background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:12px;color:var(--muted)">Units &amp; calories</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--accent2)" id="alcUnitsDisplay">—</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);text-align:right">
+          <div>Formula: ml × ABV</div>
+          <div>÷ 1000</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="logAlcohol()">Log Drink</button>
     </div>
-    <button class="btn btn-primary" style="width:100%" onclick="logAlcohol()">Log Drink</button>
   </div>
   <div class="card">
     <div class="card-title">Weekly Overview (NHS: max 14 units)</div>
@@ -958,7 +1024,14 @@ function renderCalLog(){
   document.getElementById('calModeLabel').textContent=isFastDay(today)?'🌙 Fast Day Calories':'🍽️ Today\'s Calories';
   const el=document.getElementById('calLog');
   if(!log.length){el.innerHTML='<div class="empty-state"><div class="es-icon">🍽️</div>Nothing logged today</div>';return;}
-  el.innerHTML=log.map(e=>`<div class="log-item"><div><div class="log-desc">${e.meal}: ${e.desc}</div><div class="log-time">${e.time}${e.protein?` · ${e.protein}g protein`:''}</div></div><div class="log-val cal">${e.val}</div></div>`).join('');
+  el.innerHTML=log.map(e=>{
+    const mealLabel = e.fromAlcohol ? '' : e.meal + ': ';
+    const proteinStr = e.protein ? ' · ' + e.protein + 'g protein' : '';
+    const alcStyle = e.fromAlcohol ? 'color:var(--accent2)' : '';
+    return '<div class="log-item"><div><div class="log-desc" style="' + alcStyle + '">' + mealLabel + e.desc + '</div>' +
+      '<div class="log-time">' + e.time + proteinStr + '</div></div>' +
+      '<div class="log-val cal" style="' + alcStyle + '">' + e.val + '</div></div>';
+  }).join('');
 }
 
 // ── MEAL SUGGESTIONS (Claude AI) ────────────────────────────────────────
@@ -1022,23 +1095,83 @@ function getWeekDates(){
   const d=new Date(),day=d.getDay(),diff=d.getDate()-day+(day===0?-6:1);
   return Array.from({length:7},(_,i)=>{const dd=new Date(d);dd.setDate(diff+i);return dd.toISOString().slice(0,10);});
 }
-function quickAddUnits(units,desc){
-  if(!state.alcLog[today]) state.alcLog[today]=[];
-  state.alcLog[today].push({units,desc,time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})});
-  save(); renderAlcLog();
+function unitsToKcal(units) {
+  // 1 UK unit = 10ml pure alcohol; alcohol = 7.1 kcal/ml → ~71 kcal/unit
+  // Using 56 kcal/unit (standard NHS estimate accounting for typical drink composition)
+  return Math.round(units * 56);
+}
+function alcMlAbvToKcal(ml, abv) {
+  // More precise: ml × ABV/100 × 0.789 (density) × 7.1 (kcal/g)
+  return Math.round(ml * (abv / 100) * 0.789 * 7.1);
+}
+function logAlcCalories(desc, kcal) {
+  if (!state.calLog[today]) state.calLog[today] = [];
+  state.calLog[today].push({
+    desc: '🍺 ' + desc,
+    val: kcal,
+    meal: 'Alcohol',
+    protein: 0,
+    time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'}),
+    fromAlcohol: true
+  });
+}
+function quickAddUnits(units, desc) {
+  if (!state.alcLog[today]) state.alcLog[today] = [];
+  const kcal = unitsToKcal(units);
+  state.alcLog[today].push({
+    units, desc, kcal,
+    time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})
+  });
+  logAlcCalories(desc, kcal);
+  save();
+  renderAlcLog();
+  renderCalLog();
+}
+function calcAlcUnits(){
+  const ml  = parseFloat(document.getElementById('inp-alc-ml').value);
+  const abv = parseFloat(document.getElementById('inp-alc-abv').value);
+  const resultEl = document.getElementById('alcCalcResult');
+  const displayEl = document.getElementById('alcUnitsDisplay');
+  if(ml && abv && ml > 0 && abv > 0){
+    const units = Math.round((ml * abv / 1000) * 10) / 10;
+    const kcal  = Math.round(ml * (abv / 100) * 0.789 * 7.1);
+    displayEl.textContent = units.toFixed(1) + ' units · ' + kcal + ' kcal';
+    resultEl.style.display = 'flex';
+  } else {
+    resultEl.style.display = 'none';
+  }
 }
 function logAlcohol(){
-  const desc=document.getElementById('inp-alc-desc').value.trim();
-  const units=parseFloat(document.getElementById('inp-alc-units').value);
-  if(!units){alert('Please enter units.');return;}
-  quickAddUnits(units,desc||'Drink');
-  document.getElementById('inp-alc-desc').value='';document.getElementById('inp-alc-units').value='';
+  const desc  = document.getElementById('inp-alc-desc').value.trim();
+  const ml    = parseFloat(document.getElementById('inp-alc-ml').value);
+  const abv   = parseFloat(document.getElementById('inp-alc-abv').value);
+  if (!ml || !abv) { alert('Please enter the volume (ml) and ABV (%).'); return; }
+  const units = Math.round((ml * abv / 1000) * 10) / 10;
+  const kcal  = alcMlAbvToKcal(ml, abv);
+  // Log units
+  if (!state.alcLog[today]) state.alcLog[today] = [];
+  state.alcLog[today].push({
+    units, desc: desc || 'Drink', kcal, ml, abv,
+    time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})
+  });
+  // Log calories — using precise formula since we have ml+abv
+  logAlcCalories(desc || 'Drink', kcal);
+  save();
+  document.getElementById('inp-alc-desc').value = '';
+  document.getElementById('inp-alc-ml').value   = '';
+  document.getElementById('inp-alc-abv').value  = '';
+  document.getElementById('alcCalcResult').style.display = 'none';
+  renderAlcLog();
+  renderCalLog();
 }
 function renderAlcLog(){
   const log=state.alcLog[today]||[];
   const el=document.getElementById('alcLog');
   if(!log.length){el.innerHTML='<div class="empty-state"><div class="es-icon">🚰</div>No drinks logged today</div>';}
-  else el.innerHTML=log.map(e=>`<div class="log-item"><div><div class="log-desc">${e.desc}</div><div class="log-time">${e.time}</div></div><div class="log-val alc">${e.units.toFixed(1)}u</div></div>`).join('');
+  else el.innerHTML=log.map(e=>{
+    const kcalStr = e.kcal ? ' · ' + e.kcal + ' kcal' : '';
+    return '<div class="log-item"><div><div class="log-desc">' + e.desc + '</div><div class="log-time">' + e.time + kcalStr + '</div></div><div class="log-val alc">' + e.units.toFixed(1) + 'u</div></div>';
+  }).join('');
   const wd=getWeekDates(); let weekTotal=0;
   document.getElementById('weeklyUnits').innerHTML=wd.map((d,i)=>{
     const u=(state.alcLog[d]||[]).reduce((s,e)=>s+e.units,0);
@@ -1625,6 +1758,62 @@ function closeMore() {
   document.getElementById('moreMenu').style.display = 'none';
   document.getElementById('moreOverlay').style.display = 'none';
   document.getElementById('nav-more').classList.remove('active');
+}
+
+
+// ── CALORIE ESTIMATOR ──────────────────────────────────────────────────
+let _lastEstimate = null;
+
+async function estimateCals() {
+  const desc = document.getElementById('inp-cal-desc').value.trim();
+  if (!desc) { alert('Enter a food description first.'); return; }
+
+  const loadEl   = document.getElementById('calEstLoading');
+  const resultEl = document.getElementById('calEstimateResult');
+  resultEl.style.display = 'none';
+  loadEl.style.display   = 'block';
+
+  const portion = document.getElementById('inp-cal-portion').value.trim();
+  const isFast  = isFastDay(today);
+  const weight  = (state.bodyLog[0] || {}).weight || 89;
+
+  const fastNote = isFast ? ' Today is a fast day (500 kcal limit) so flag if this is a large portion.' : '';
+  const portionNote = portion ? ' (' + portion + ')' : '';
+  const prompt = 'You are a nutrition database. Estimate the nutritional content of the following food. The person weighs ' + weight + 'kg and is tracking calories for weight loss.' + fastNote + ' Food: ' + desc + portionNote + ' Assume a typical home-cooked or standard restaurant serving unless otherwise specified. Respond ONLY with valid JSON, no markdown: {"kcal":number,"protein":number,"carbs":number,"fat":number,"portion":"description of assumed portion size","note":"one sentence of useful context e.g. main calorie sources or how to reduce if high","confidence":"high|medium|low"}';
+
+  try {
+    const resp = await fetch(WORKER_URL(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    if (!resp.ok) throw new Error('Worker error ' + resp.status);
+    const data = await resp.json();
+    const raw  = (data.result || '').replace(/```json|```/g, '').trim();
+    const est  = JSON.parse(raw);
+    _lastEstimate = est;
+
+    document.getElementById('calEstKcal').textContent    = est.kcal;
+    document.getElementById('calEstProtein').textContent = est.protein;
+    document.getElementById('calEstCarbs').textContent   = est.carbs;
+    document.getElementById('calEstFat').textContent     = est.fat;
+    document.getElementById('calEstPortion').textContent = est.portion || '';
+    document.getElementById('calEstNote').textContent    = est.note || '';
+
+    loadEl.style.display   = 'none';
+    resultEl.style.display = 'block';
+  } catch(e) {
+    loadEl.style.display = 'none';
+    alert('Could not estimate — check your Worker is deployed. ' + e.message);
+  }
+}
+
+function useEstimate() {
+  if (!_lastEstimate) return;
+  document.getElementById('inp-cal-val').value  = _lastEstimate.kcal;
+  document.getElementById('inp-protein').value  = _lastEstimate.protein;
+  document.getElementById('calEstimateResult').style.display = 'none';
+  _lastEstimate = null;
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────
