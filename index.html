@@ -225,6 +225,15 @@
   .more-item svg { flex-shrink:0; color:var(--accent); }
   /* bottom nav - reduce font slightly to fit 5 items */
   .nav-item { font-size: 9px; }
+
+  /* ── DATE PICKER ── */
+  .date-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .date-row label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:500; white-space:nowrap; }
+  .date-row input[type=date] { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:8px 12px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; flex:1; }
+  .date-row input[type=date]:focus { border-color:var(--accent); }
+  .date-row .date-shortcuts { display:flex; gap:6px; }
+  .date-shortcut { padding:6px 10px; border-radius:8px; font-size:11px; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--muted); font-weight:500; white-space:nowrap; }
+  .date-shortcut.active { background:var(--accent); border-color:var(--accent); color:#0d0f14; }
 </style>
 </head>
 <body>
@@ -410,6 +419,14 @@
   </div>
   <div class="card">
     <div class="card-title">Log Food</div>
+    <div class="date-row">
+      <label>Date</label>
+      <input type="date" id="inp-cal-date">
+      <div class="date-shortcuts">
+        <div class="date-shortcut active" id="calDateToday" onclick="setCalDate('today')">Today</div>
+        <div class="date-shortcut" id="calDateYesterday" onclick="setCalDate('yesterday')">Yesterday</div>
+      </div>
+    </div>
     <div class="input-row" style="align-items:flex-end;gap:8px">
       <div class="input-group" style="flex:1">
         <label>Description</label>
@@ -521,6 +538,14 @@
   <div class="section-head">Alcohol Tracker</div>
   <div class="card">
     <div class="card-title">Quick Add</div>
+    <div class="date-row" style="margin-bottom:10px">
+      <label>Date</label>
+      <input type="date" id="inp-quick-alc-date">
+      <div class="date-shortcuts">
+        <div class="date-shortcut active" id="quickAlcDateToday" onclick="setQuickAlcDate('today')">Today</div>
+        <div class="date-shortcut" id="quickAlcDateYesterday" onclick="setQuickAlcDate('yesterday')">Yesterday</div>
+      </div>
+    </div>
     <div class="unit-grid">
       <div class="unit-btn" onclick="quickAddUnits(2.3,'Pint of beer (4%)')"><span class="ub-icon">🍺</span>Pint (4%)<div class="ub-units">2.3u · ~129 kcal</div></div>
       <div class="unit-btn" onclick="quickAddUnits(3,'Large wine 250ml')"><span class="ub-icon">🍷</span>Wine 250ml<div class="ub-units">3.0u · ~168 kcal</div></div>
@@ -531,6 +556,14 @@
     </div>
     <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:16px">
       <div class="card-title" style="margin-bottom:10px">Custom Drink Calculator</div>
+      <div class="date-row">
+        <label>Date</label>
+        <input type="date" id="inp-alc-date">
+        <div class="date-shortcuts">
+          <div class="date-shortcut active" id="alcDateToday" onclick="setAlcDate('today')">Today</div>
+          <div class="date-shortcut" id="alcDateYesterday" onclick="setAlcDate('yesterday')">Yesterday</div>
+        </div>
+      </div>
       <div class="input-row">
         <div class="input-group" style="flex:2">
           <label>Drink name</label>
@@ -1000,13 +1033,26 @@ function renderFasting(){
 
 // ── CALORIES ───────────────────────────────────────────────────────────
 function logCalories(){
-  const desc=document.getElementById('inp-cal-desc').value.trim();
-  const val=parseFloat(document.getElementById('inp-cal-val').value);
-  if(!desc||!val){alert('Please enter a description and calories.');return;}
-  if(!state.calLog[today]) state.calLog[today]=[];
-  state.calLog[today].push({desc,val,meal:document.getElementById('inp-cal-meal').value,protein:parseFloat(document.getElementById('inp-protein').value)||0,time:new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})});
+  const desc = document.getElementById('inp-cal-desc').value.trim();
+  const val  = parseFloat(document.getElementById('inp-cal-val').value);
+  if (!desc || !val) { alert('Please enter a description and calories.'); return; }
+  const logDate = document.getElementById('inp-cal-date').value || today;
+  if (!state.calLog[logDate]) state.calLog[logDate] = [];
+  state.calLog[logDate].push({
+    desc, val,
+    meal: document.getElementById('inp-cal-meal').value,
+    protein: parseFloat(document.getElementById('inp-protein').value) || 0,
+    time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})
+  });
   save();
-  document.getElementById('inp-cal-desc').value='';document.getElementById('inp-cal-val').value='';document.getElementById('inp-protein').value='';
+  document.getElementById('inp-cal-desc').value = '';
+  document.getElementById('inp-cal-val').value  = '';
+  document.getElementById('inp-protein').value  = '';
+  const isRetro = logDate !== today;
+  if (isRetro) {
+    alert('✅ Logged to ' + logDate);
+    setCalDate('today'); // reset back to today after retrospective entry
+  }
   renderCalLog();
 }
 function setCalGoal(){ const g=parseInt(document.getElementById('inp-cal-goal').value); if(g>0){state.calGoal=g;save();renderCalLog();} }
@@ -1104,9 +1150,10 @@ function alcMlAbvToKcal(ml, abv) {
   // More precise: ml × ABV/100 × 0.789 (density) × 7.1 (kcal/g)
   return Math.round(ml * (abv / 100) * 0.789 * 7.1);
 }
-function logAlcCalories(desc, kcal) {
-  if (!state.calLog[today]) state.calLog[today] = [];
-  state.calLog[today].push({
+function logAlcCalories(desc, kcal, logDate) {
+  logDate = logDate || today;
+  if (!state.calLog[logDate]) state.calLog[logDate] = [];
+  state.calLog[logDate].push({
     desc: '🍺 ' + desc,
     val: kcal,
     meal: 'Alcohol',
@@ -1116,14 +1163,19 @@ function logAlcCalories(desc, kcal) {
   });
 }
 function quickAddUnits(units, desc) {
-  if (!state.alcLog[today]) state.alcLog[today] = [];
+  const logDate = document.getElementById('inp-quick-alc-date').value || today;
+  if (!state.alcLog[logDate]) state.alcLog[logDate] = [];
   const kcal = unitsToKcal(units);
-  state.alcLog[today].push({
+  state.alcLog[logDate].push({
     units, desc, kcal,
     time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})
   });
-  logAlcCalories(desc, kcal);
+  logAlcCalories(desc, kcal, logDate);
   save();
+  if (logDate !== today) {
+    alert('✅ Logged to ' + logDate);
+    setQuickAlcDate('today');
+  }
   renderAlcLog();
   renderCalLog();
 }
@@ -1142,25 +1194,28 @@ function calcAlcUnits(){
   }
 }
 function logAlcohol(){
-  const desc  = document.getElementById('inp-alc-desc').value.trim();
-  const ml    = parseFloat(document.getElementById('inp-alc-ml').value);
-  const abv   = parseFloat(document.getElementById('inp-alc-abv').value);
+  const desc    = document.getElementById('inp-alc-desc').value.trim();
+  const ml      = parseFloat(document.getElementById('inp-alc-ml').value);
+  const abv     = parseFloat(document.getElementById('inp-alc-abv').value);
   if (!ml || !abv) { alert('Please enter the volume (ml) and ABV (%).'); return; }
-  const units = Math.round((ml * abv / 1000) * 10) / 10;
-  const kcal  = alcMlAbvToKcal(ml, abv);
-  // Log units
-  if (!state.alcLog[today]) state.alcLog[today] = [];
-  state.alcLog[today].push({
+  const units   = Math.round((ml * abv / 1000) * 10) / 10;
+  const kcal    = alcMlAbvToKcal(ml, abv);
+  const logDate = document.getElementById('inp-alc-date').value || today;
+  if (!state.alcLog[logDate]) state.alcLog[logDate] = [];
+  state.alcLog[logDate].push({
     units, desc: desc || 'Drink', kcal, ml, abv,
     time: new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'})
   });
-  // Log calories — using precise formula since we have ml+abv
-  logAlcCalories(desc || 'Drink', kcal);
+  logAlcCalories(desc || 'Drink', kcal, logDate);
   save();
   document.getElementById('inp-alc-desc').value = '';
   document.getElementById('inp-alc-ml').value   = '';
   document.getElementById('inp-alc-abv').value  = '';
   document.getElementById('alcCalcResult').style.display = 'none';
+  if (logDate !== today) {
+    alert('✅ Logged to ' + logDate);
+    setAlcDate('today');
+  }
   renderAlcLog();
   renderCalLog();
 }
@@ -1816,7 +1871,70 @@ function useEstimate() {
   _lastEstimate = null;
 }
 
+
+// ── DATE HELPERS ───────────────────────────────────────────────────────
+function getYesterday() {
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+function setCalDate(which) {
+  const val = which === 'yesterday' ? getYesterday() : today;
+  document.getElementById('inp-cal-date').value = val;
+  document.getElementById('calDateToday').classList.toggle('active', which === 'today');
+  document.getElementById('calDateYesterday').classList.toggle('active', which === 'yesterday');
+  // Update the ring label to reflect the selected date
+  const isFast = isFastDay(val);
+  document.getElementById('calModeLabel').textContent = which === 'yesterday'
+    ? (isFast ? '🌙 Yesterday - Fast Day' : '🍽️ Yesterday Calories')
+    : (isFast ? '🌙 Fast Day Calories' : '🍽️ Today Calories');
+  // Show the log for the selected date
+  renderCalLogForDate(val);
+}
+function setAlcDate(which) {
+  const val = which === 'yesterday' ? getYesterday() : today;
+  document.getElementById('inp-alc-date').value = val;
+  document.getElementById('alcDateToday').classList.toggle('active', which === 'today');
+  document.getElementById('alcDateYesterday').classList.toggle('active', which === 'yesterday');
+}
+function setQuickAlcDate(which) {
+  const val = which === 'yesterday' ? getYesterday() : today;
+  document.getElementById('inp-quick-alc-date').value = val;
+  document.getElementById('quickAlcDateToday').classList.toggle('active', which === 'today');
+  document.getElementById('quickAlcDateYesterday').classList.toggle('active', which === 'yesterday');
+}
+function renderCalLogForDate(date) {
+  const log   = state.calLog[date] || [];
+  const total = log.reduce((s,e) => s + e.val, 0);
+  const totalProtein = log.reduce((s,e) => s + e.protein, 0);
+  document.getElementById('calTotal').textContent = total;
+  const pct = Math.min(1, total / state.calGoal), circ = 232;
+  document.getElementById('calRing').style.strokeDashoffset = circ - circ * pct;
+  document.getElementById('calRing').style.stroke = pct >= 1 ? 'var(--danger)' : pct > 0.85 ? 'var(--warn)' : 'var(--accent)';
+  document.getElementById('calGoalLabel').textContent = 'of ' + state.calGoal + ' kcal · ' + Math.max(0, state.calGoal - total) + ' remaining';
+  document.getElementById('calProteinLabel').textContent = totalProtein > 0 ? totalProtein + 'g protein' : '';
+  const el = document.getElementById('calLog');
+  if (!log.length) { el.innerHTML = '<div class="empty-state"><div class="es-icon">🍽️</div>Nothing logged' + (date !== today ? ' for ' + date : ' today') + '</div>'; return; }
+  el.innerHTML = log.map(function(e) {
+    const mealLabel = e.fromAlcohol ? '' : e.meal + ': ';
+    const proteinStr = e.protein ? ' · ' + e.protein + 'g protein' : '';
+    const alcStyle = e.fromAlcohol ? 'color:var(--accent2)' : '';
+    return '<div class="log-item"><div><div class="log-desc" style="' + alcStyle + '">' + mealLabel + e.desc + '</div>' +
+      '<div class="log-time">' + e.time + proteinStr + '</div></div>' +
+      '<div class="log-val cal" style="' + alcStyle + '">' + e.val + '</div></div>';
+  }).join('');
+}
+function initDateFields() {
+  document.getElementById('inp-cal-date').value        = today;
+  document.getElementById('inp-alc-date').value        = today;
+  document.getElementById('inp-quick-alc-date').value  = today;
+  // Set max to today so future dates can't be selected
+  ['inp-cal-date','inp-alc-date','inp-quick-alc-date'].forEach(function(id) {
+    document.getElementById(id).max = today;
+  });
+}
+
 // ── INIT ───────────────────────────────────────────────────────────────
+initDateFields();
 renderDashboard();
 renderBodyHistory();
 renderBodyFat(state.bodyLog[0]);
